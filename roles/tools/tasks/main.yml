@@ -1,0 +1,10 @@
+---
+# tasks file for epel
+- name:
+  yum: pkg={{item}} state=latest
+  with_items:
+    - "epel-release"
+    - "zip"
+    - "unzip"
+    - "htop"
+    - "wget"

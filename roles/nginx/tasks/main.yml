@@ -1,0 +1,65 @@
+---
+- name: (1/6) - SYSTEM - Atualizando o Sistema
+  ansible.builtin.yum: name=* state=latest update_cache=yes
+  when: ansible_distribution == "CentOS"        
+  tags: atualiza-sistema
+
+- name: (2/6) - NGINX - Instalando o Nginx (ultima version)
+  ansible.builtin.yum:
+    name: ['nginx.x86_64']
+    state: latest
+  tags: instala_nginx
+
+- name: (3/6) - NGINX - Criando diretórios
+  ansible.builtin.file: 
+    path: "{{ item }}"
+    state: directory 
+    mode: 0750 
+    owner: root 
+    group: root
+  with_items:
+      - /etc/nginx/features
+      - /etc/nginx/vhosts.d
+  tags: cria_diretorio
+
+- name: (4/6) - NGINX - Copiando arquivos
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: 0644
+    force: yes
+    backup: yes
+  with_items:
+    - { src: 'nginx.conf', dest: '/etc/nginx/nginx.conf' }
+    - { src: 'gzip.conf', dest: '/etc/nginx/features/gzip.conf' }
+    - { src: 'vhost.example', dest: '/etc/nginx/vhosts.d/vhost.example' }
+  tags: copia_arquivos_nginx
+
+- name: (5/6) - Configurando SELinux em modo permissivo
+  selinux:
+    policy: targeted
+    state: permissive
+
+- name: (6/6) - NGINX - Cria o diretório root do Nginx
+  ansible.builtin.file:
+    path: "{{  root_dir }}"
+    state: directory
+    mode: 0775
+    owner: nginx
+    group: nginx
+    recurse: yes
+  tags: cria_root_nginx_diretorio
+
+- name: (7/6) - NGINX | Extrai o website
+  ansible.builtin.unarchive:
+    src: file.zip
+    dest: "{{  root_dir }}"
+    owner: nginx
+    group: nginx
+    mode: 0755
+    remote_src: no
+  notify: Restarting nginx
+
+...
